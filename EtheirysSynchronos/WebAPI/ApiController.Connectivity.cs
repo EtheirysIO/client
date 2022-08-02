@@ -26,7 +26,7 @@ namespace EtheirysSynchronos.WebAPI
     public partial class ApiController : IDisposable
     {
         public const string MainServer = "Etheirys (US/CAN Only)";
-        public const string MainServiceUri = "wss://maresync98712364tyorhguibnjasdf.etheirys.io:5535";
+        public const string MainServiceUri = "wss://maresync98712364tyorhguibnjasdf.etheirys.io:2096";
 
         public readonly int[] SupportedServerVersions = { Api.Version };
 
