@@ -18,7 +18,7 @@ namespace EtheirysSynchronos
 {
     public sealed class Plugin : IDalamudPlugin
     {
-        private const string CommandName = "/etheirys";
+        private const string CommandName = "/eth";
         private readonly ApiController _apiController;
         private readonly CommandManager _commandManager;
         private readonly Framework _framework;
