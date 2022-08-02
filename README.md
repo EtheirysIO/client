@@ -1,7 +1,9 @@
-# Mare Synchronos Dalamud Plugin
+# Etheirys Synchronos Dalamud Plugin
 
-Available at [This dalamud Repo](https://raw.githubusercontent.com/Penumbra-Sync/repo/main/plogonmaster.json)
+Built upon Mare Synchronos Available at [This dalamud Repo](https://raw.githubusercontent.com/Penumbra-Sync/repo/main/plogonmaster.json)
+
+- Rolled back to pre Discord auth
 
 # [Mare Synchronos Discord](https://discord.gg/5HVveFefcB)
 
-Readme TBD
+**No support for Etheirys at the above discord.**
