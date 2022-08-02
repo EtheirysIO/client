@@ -32,12 +32,12 @@
 
 ## Discord Links
 
-# [Mare Synchronos Discord (NO SUPPORT FOR ETHEIRYS](https://discord.gg/5HVveFefcB)
+[Mare Synchronos Discord (NO SUPPORT FOR ETHEIRYS](https://discord.gg/5HVveFefcB)
 
-# [EtheirysIO Discord](https://discord.gg/2Pbahv3NMr)
+[EtheirysIO Discord](https://discord.gg/2Pbahv3NMr)
 
 ## Donation Links
 
-# [Mare Donation Link] (https://paypal.me/StanleyDimantCH)
+[Mare Donation Link](https://paypal.me/StanleyDimantCH)
 
-# [Etheirys Server Bills] (https://leekspin.ytmnd.com/)
+[Etheirys Server Bills](https://leekspin.ytmnd.com/)
