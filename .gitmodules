@@ -1,6 +1,6 @@
-[submodule "EtheirysAPI"]
-	path = EtheirysAPI
-	url = git@github.com:EtheirysIO/api.git
 [submodule "Penumbra"]
 	path = Penumbra
 	url = https://github.com/xivdev/Penumbra.git
+[submodule "EtheirysAPI"]
+	path = EtheirysAPI
+	url = git@github.com:EtheirysIO/api.git
