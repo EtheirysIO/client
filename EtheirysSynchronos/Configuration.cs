@@ -224,6 +224,35 @@ namespace EtheirysSynchronos
                 Version = 5;
                 Save();
             }
+            if (Version == 5)
+            {
+                Logger.Debug("Migrating configuration from V5 to V6");
+
+                ApiUri = ApiUri.Replace("wss://maresync98712364tyorhguibnjasdf.etheirys.io:2096", "wss://srv1.sync.etheirys.io:2096");
+                foreach (var kvp in ClientSecret.ToList())
+                {
+                    var newKey = kvp.Key.Replace("wss://maresync98712364tyorhguibnjasdf.etheirys.io:2096", "wss://srv1.sync.etheirys.io:2096");
+                    ClientSecret.Remove(kvp.Key);
+                    if (ClientSecret.ContainsKey(newKey))
+                    {
+                        ClientSecret[newKey] = kvp.Value;
+                    }
+                    else
+                    {
+                        ClientSecret.Add(newKey, kvp.Value);
+                    }
+                }
+
+                foreach (var kvp in UidServerComments.ToList())
+                {
+                    var newKey = kvp.Key.Replace("wss://maresync98712364tyorhguibnjasdf.etheirys.io:2096", "wss://srv1.sync.etheirys.io:2096");
+                    UidServerComments.Remove(kvp.Key);
+                    UidServerComments.Add(newKey, kvp.Value);
+                }
+
+                Version = 6;
+                Save();
+            }
         }
     }
 }

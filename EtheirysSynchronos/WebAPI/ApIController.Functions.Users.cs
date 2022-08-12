@@ -12,8 +12,8 @@ namespace EtheirysSynchronos.WebAPI
         {
             _pluginConfiguration.ClientSecret.Remove(ApiUri);
             _pluginConfiguration.Save();
-            await _mareHub!.SendAsync(Api.SendFileDeleteAllFiles);
-            await _mareHub!.SendAsync(Api.SendUserDeleteAccount);
+            await _ethHub!.SendAsync(Api.SendFileDeleteAllFiles);
+            await _ethHub!.SendAsync(Api.SendUserDeleteAccount);
             await CreateConnections();
         }
 
@@ -21,7 +21,7 @@ namespace EtheirysSynchronos.WebAPI
         {
             if (!ServerAlive) return;
             Logger.Debug("Registering at service " + ApiUri);
-            var response = await _mareHub!.InvokeAsync<string>(Api.InvokeUserRegister);
+            var response = await _ethHub!.InvokeAsync<string>(Api.InvokeUserRegister);
             _pluginConfiguration.ClientSecret[ApiUri] = response;
             _pluginConfiguration.Save();
             if (!isIntroUi)
@@ -34,25 +34,25 @@ namespace EtheirysSynchronos.WebAPI
 
         public async Task<List<string>> GetOnlineCharacters()
         {
-            return await _mareHub!.InvokeAsync<List<string>>(Api.InvokeUserGetOnlineCharacters);
+            return await _ethHub!.InvokeAsync<List<string>>(Api.InvokeUserGetOnlineCharacters);
         }
 
         public async Task SendPairedClientAddition(string uid)
         {
             if (!IsConnected || SecretKey == "-") return;
-            await _mareHub!.SendAsync(Api.SendUserPairedClientAddition, uid);
+            await _ethHub!.SendAsync(Api.SendUserPairedClientAddition, uid);
         }
 
         public async Task SendPairedClientPauseChange(string uid, bool paused)
         {
             if (!IsConnected || SecretKey == "-") return;
-            await _mareHub!.SendAsync(Api.SendUserPairedClientPauseChange, uid, paused);
+            await _ethHub!.SendAsync(Api.SendUserPairedClientPauseChange, uid, paused);
         }
 
         public async Task SendPairedClientRemoval(string uid)
         {
             if (!IsConnected || SecretKey == "-") return;
-            await _mareHub!.SendAsync(Api.SendUserPairedClientRemoval, uid);
+            await _ethHub!.SendAsync(Api.SendUserPairedClientRemoval, uid);
         }
     }
 

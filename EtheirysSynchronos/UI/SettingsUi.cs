@@ -446,13 +446,13 @@ namespace EtheirysSynchronos.UI
                 UiShared.ColorTextWrapped("Note: to change servers you need to disconnect from your current Etheirys Synchronos server.", ImGuiColors.DalamudYellow);
             }
 
-            var marePaused = _configuration.FullPause;
+            var ethPaused = _configuration.FullPause;
 
             if (_configuration.HasValidSetup())
             {
-                if (ImGui.Checkbox("Disconnect Etheirys Synchronos", ref marePaused))
+                if (ImGui.Checkbox("Disconnect Etheirys Synchronos", ref ethPaused))
                 {
-                    _configuration.FullPause = marePaused;
+                    _configuration.FullPause = ethPaused;
                     _configuration.Save();
                     Task.Run(_apiController.CreateConnections);
                 }
@@ -464,7 +464,7 @@ namespace EtheirysSynchronos.UI
                 UiShared.ColorText("You cannot reconnect without a valid account on the service.", ImGuiColors.DalamudYellow);
             }
 
-            if (marePaused)
+            if (ethPaused)
             {
                 _uiShared.DrawServiceSelection(() => SwitchToIntroUi?.Invoke());
             }

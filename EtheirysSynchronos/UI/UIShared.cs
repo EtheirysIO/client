@@ -170,10 +170,6 @@ namespace EtheirysSynchronos.UI
                 ImGui.SameLine();
                 ImGui.Text("Users Online,");
                 ImGui.SameLine();
-                ColorText(_apiController.SystemInfoDto.CpuUsage.ToString("0.00") + "%", GetCpuLoadColor(_apiController.SystemInfoDto.CpuUsage));
-                ImGui.SameLine();
-                ImGui.Text("Load");
-                ImGui.SameLine();
                 ImGui.Text(")");
             }
         }

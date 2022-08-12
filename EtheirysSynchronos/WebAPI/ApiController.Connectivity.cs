@@ -26,7 +26,7 @@ namespace EtheirysSynchronos.WebAPI
     public partial class ApiController : IDisposable
     {
         public const string MainServer = "Etheirys (US/CAN Only)";
-        public const string MainServiceUri = "wss://maresync98712364tyorhguibnjasdf.etheirys.io:2096";
+        public const string MainServiceUri = "wss://srv1.sync.etheirys.io:2096";
 
         public readonly int[] SupportedServerVersions = { Api.Version };
 
@@ -35,7 +35,7 @@ namespace EtheirysSynchronos.WebAPI
 
         private CancellationTokenSource _connectionCancellationTokenSource;
 
-        private HubConnection? _mareHub;
+        private HubConnection? _ethHub;
 
         private CancellationTokenSource? _uploadCancellationTokenSource = new();
 
@@ -111,7 +111,7 @@ namespace EtheirysSynchronos.WebAPI
             : "-";
 
         public bool ServerAlive =>
-            (_mareHub?.State ?? HubConnectionState.Disconnected) == HubConnectionState.Connected;
+            (_ethHub?.State ?? HubConnectionState.Disconnected) == HubConnectionState.Connected;
 
         public Dictionary<string, string> ServerDictionary => new Dictionary<string, string>()
                 { { MainServiceUri, MainServer } }
@@ -168,11 +168,11 @@ namespace EtheirysSynchronos.WebAPI
 
                     if (token.IsCancellationRequested) break;
 
-                    _mareHub = BuildHubConnection(Api.Path);
+                    _ethHub = BuildHubConnection(Api.Path);
 
-                    await _mareHub.StartAsync(token);
+                    await _ethHub.StartAsync(token);
 
-                    _mareHub.On<SystemInfoDto>(Api.OnUpdateSystemInfo, (dto) => SystemInfoDto = dto);
+                    _ethHub.On<SystemInfoDto>(Api.OnUpdateSystemInfo, (dto) => SystemInfoDto = dto);
 
                     if (_pluginConfiguration.FullPause)
                     {
@@ -181,14 +181,14 @@ namespace EtheirysSynchronos.WebAPI
                     }
 
                     _connectionDto =
-                        await _mareHub.InvokeAsync<ConnectionDto>(Api.InvokeHeartbeat, _dalamudUtil.PlayerNameHashed, token);
+                        await _ethHub.InvokeAsync<ConnectionDto>(Api.InvokeHeartbeat, _dalamudUtil.PlayerNameHashed, token);
                     if (ServerState is ServerState.Connected) // user is authorized && server is legit
                     {
                         await InitializeData(token);
 
-                        _mareHub.Closed += MareHubOnClosed;
-                        _mareHub.Reconnected += MareHubOnReconnected;
-                        _mareHub.Reconnecting += MareHubOnReconnecting;
+                        _ethHub.Closed += EthHubOnClosed;
+                        _ethHub.Reconnected += EthHubOnReconnected;
+                        _ethHub.Reconnecting += EthHubOnReconnecting;
                     }
                     else if (ServerState is ServerState.VersionMisMatch or ServerState.NoAccount or ServerState.Unauthorized)
                     {
@@ -208,36 +208,36 @@ namespace EtheirysSynchronos.WebAPI
 
         private async Task InitializeData(CancellationToken token)
         {
-            if (_mareHub == null) return;
+            if (_ethHub == null) return;
 
             Logger.Debug("Initializing data");
-            _mareHub.On<ClientPairDto, string>(Api.OnUserUpdateClientPairs,
+            _ethHub.On<ClientPairDto, string>(Api.OnUserUpdateClientPairs,
                 UpdateLocalClientPairsCallback);
-            _mareHub.On<CharacterCacheDto, string>(Api.OnUserReceiveCharacterData,
+            _ethHub.On<CharacterCacheDto, string>(Api.OnUserReceiveCharacterData,
                 ReceiveCharacterDataCallback);
-            _mareHub.On<string>(Api.OnUserRemoveOnlinePairedPlayer,
+            _ethHub.On<string>(Api.OnUserRemoveOnlinePairedPlayer,
                 (s) => PairedClientOffline?.Invoke(s));
-            _mareHub.On<string>(Api.OnUserAddOnlinePairedPlayer,
+            _ethHub.On<string>(Api.OnUserAddOnlinePairedPlayer,
                 (s) => PairedClientOnline?.Invoke(s));
-            _mareHub.On(Api.OnAdminForcedReconnect, UserForcedReconnectCallback);
+            _ethHub.On(Api.OnAdminForcedReconnect, UserForcedReconnectCallback);
 
             PairedClients =
-                await _mareHub!.InvokeAsync<List<ClientPairDto>>(Api.InvokeUserGetPairedClients, token);
+                await _ethHub!.InvokeAsync<List<ClientPairDto>>(Api.InvokeUserGetPairedClients, token);
 
             if (IsModerator)
             {
                 AdminForbiddenFiles =
-                    await _mareHub.InvokeAsync<List<ForbiddenFileDto>>(Api.InvokeAdminGetForbiddenFiles,
+                    await _ethHub.InvokeAsync<List<ForbiddenFileDto>>(Api.InvokeAdminGetForbiddenFiles,
                         token);
                 AdminBannedUsers =
-                    await _mareHub.InvokeAsync<List<BannedUserDto>>(Api.InvokeAdminGetBannedUsers,
+                    await _ethHub.InvokeAsync<List<BannedUserDto>>(Api.InvokeAdminGetBannedUsers,
                         token);
-                _mareHub.On<BannedUserDto>(Api.OnAdminUpdateOrAddBannedUser,
+                _ethHub.On<BannedUserDto>(Api.OnAdminUpdateOrAddBannedUser,
                     UpdateOrAddBannedUserCallback);
-                _mareHub.On<BannedUserDto>(Api.OnAdminDeleteBannedUser, DeleteBannedUserCallback);
-                _mareHub.On<ForbiddenFileDto>(Api.OnAdminUpdateOrAddForbiddenFile,
+                _ethHub.On<BannedUserDto>(Api.OnAdminDeleteBannedUser, DeleteBannedUserCallback);
+                _ethHub.On<ForbiddenFileDto>(Api.OnAdminUpdateOrAddForbiddenFile,
                     UpdateOrAddForbiddenFileCallback);
-                _mareHub.On<ForbiddenFileDto>(Api.OnAdminDeleteForbiddenFile,
+                _ethHub.On<ForbiddenFileDto>(Api.OnAdminDeleteForbiddenFile,
                     DeleteForbiddenFileCallback);
             }
 
@@ -271,7 +271,7 @@ namespace EtheirysSynchronos.WebAPI
                 .Build();
         }
 
-        private Task MareHubOnClosed(Exception? arg)
+        private Task EthHubOnClosed(Exception? arg)
         {
             CurrentUploads.Clear();
             CurrentDownloads.Clear();
@@ -281,7 +281,7 @@ namespace EtheirysSynchronos.WebAPI
             return Task.CompletedTask;
         }
 
-        private async Task MareHubOnReconnected(string? arg)
+        private async Task EthHubOnReconnected(string? arg)
         {
             Logger.Info("Connection restored");
             await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 10)));
@@ -289,7 +289,7 @@ namespace EtheirysSynchronos.WebAPI
             _ = Task.Run(CreateConnections);
         }
 
-        private Task MareHubOnReconnecting(Exception? arg)
+        private Task EthHubOnReconnecting(Exception? arg)
         {
             CurrentUploads.Clear();
             CurrentDownloads.Clear();
@@ -303,15 +303,15 @@ namespace EtheirysSynchronos.WebAPI
 
         private async Task StopConnection(CancellationToken token)
         {
-            if (_mareHub is not null)
+            if (_ethHub is not null)
             {
                 Logger.Info("Stopping all connections");
-                await _mareHub.StopAsync(token);
-                _mareHub.Closed -= MareHubOnClosed;
-                _mareHub.Reconnected -= MareHubOnReconnected;
-                _mareHub.Reconnecting += MareHubOnReconnecting;
-                await _mareHub.DisposeAsync();
-                _mareHub = null;
+                await _ethHub.StopAsync(token);
+                _ethHub.Closed -= EthHubOnClosed;
+                _ethHub.Reconnected -= EthHubOnReconnected;
+                _ethHub.Reconnecting += EthHubOnReconnecting;
+                await _ethHub.DisposeAsync();
+                _ethHub = null;
             }
         }
     }

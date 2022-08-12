@@ -25,14 +25,14 @@ namespace EtheirysSynchronos.WebAPI
             {
                 Logger.Debug("Cancelling upload");
                 _uploadCancellationTokenSource?.Cancel();
-                _mareHub!.SendAsync(Api.SendFileAbortUpload);
+                _ethHub!.SendAsync(Api.SendFileAbortUpload);
                 CurrentUploads.Clear();
             }
         }
 
         public async Task DeleteAllMyFiles()
         {
-            await _mareHub!.SendAsync(Api.SendFileDeleteAllFiles);
+            await _ethHub!.SendAsync(Api.SendFileDeleteAllFiles);
         }
 
         private async Task<string> DownloadFile(int downloadId, string hash, CancellationToken ct)
@@ -75,7 +75,7 @@ namespace EtheirysSynchronos.WebAPI
             List<DownloadFileDto> downloadFileInfoFromService = new List<DownloadFileDto>();
             foreach (var file in fileReplacementDto)
             {
-                downloadFileInfoFromService.Add(await _mareHub!.InvokeAsync<DownloadFileDto>(Api.InvokeFileGetFileSize, file.Hash, ct));
+                downloadFileInfoFromService.Add(await _ethHub!.InvokeAsync<DownloadFileDto>(Api.InvokeFileGetFileSize, file.Hash, ct));
             }
 
             CurrentDownloads[currentDownloadId] = downloadFileInfoFromService.Distinct().Select(d => new DownloadFileTransfer(d))
@@ -147,7 +147,7 @@ namespace EtheirysSynchronos.WebAPI
             var uploadToken = _uploadCancellationTokenSource.Token;
             Logger.Verbose("New Token Created");
 
-            var filesToUpload = await _mareHub!.InvokeAsync<List<UploadFileDto>>(Api.InvokeFileSendFiles, character.FileReplacements.SelectMany(c => c.Value.Select(v => v.Hash)).Distinct(), uploadToken);
+            var filesToUpload = await _ethHub!.InvokeAsync<List<UploadFileDto>>(Api.InvokeFileSendFiles, character.FileReplacements.SelectMany(c => c.Value.Select(v => v.Hash)).Distinct(), uploadToken);
 
             foreach (var file in filesToUpload.Where(f => !f.IsForbidden))
             {
@@ -202,11 +202,11 @@ namespace EtheirysSynchronos.WebAPI
             }
 
             Logger.Debug("Upload tasks complete, waiting for server to confirm");
-            var anyUploadsOpen = await _mareHub!.InvokeAsync<bool>(Api.InvokeFileIsUploadFinished, uploadToken);
+            var anyUploadsOpen = await _ethHub!.InvokeAsync<bool>(Api.InvokeFileIsUploadFinished, uploadToken);
             Logger.Debug("Uploads open: " + anyUploadsOpen);
             while (anyUploadsOpen && !uploadToken.IsCancellationRequested)
             {
-                anyUploadsOpen = await _mareHub!.InvokeAsync<bool>(Api.InvokeFileIsUploadFinished, uploadToken);
+                anyUploadsOpen = await _ethHub!.InvokeAsync<bool>(Api.InvokeFileIsUploadFinished, uploadToken);
                 await Task.Delay(TimeSpan.FromSeconds(0.5), uploadToken);
                 Logger.Debug("Waiting for uploads to finish");
             }
@@ -226,7 +226,7 @@ namespace EtheirysSynchronos.WebAPI
                     sb.AppendLine($"GlamourerData for {item.Key}: {!string.IsNullOrEmpty(item.Value)}");
                 }
                 Logger.Debug("Chara data contained: " + Environment.NewLine + sb.ToString());
-                await _mareHub!.InvokeAsync(Api.InvokeUserPushCharacterDataToVisibleClients, character, visibleCharacterIds, uploadToken);
+                await _ethHub!.InvokeAsync(Api.InvokeUserPushCharacterDataToVisibleClients, character, visibleCharacterIds, uploadToken);
             }
             else
             {
@@ -263,7 +263,7 @@ namespace EtheirysSynchronos.WebAPI
                 }
             }
 
-            await _mareHub!.SendAsync(Api.SendFileUploadFileStreamAsync, fileHash, AsyncFileData(uploadToken), uploadToken);
+            await _ethHub!.SendAsync(Api.SendFileUploadFileStreamAsync, fileHash, AsyncFileData(uploadToken), uploadToken);
         }
 
         public void CancelDownload(int downloadId)

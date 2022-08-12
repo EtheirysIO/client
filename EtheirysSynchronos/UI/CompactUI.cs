@@ -292,55 +292,39 @@ namespace EtheirysSynchronos.UI
 
         private void DrawServerStatus()
         {
-            if (_apiController.ServerAlive)
+            var buttonSize = UiShared.GetIconButtonSize(FontAwesomeIcon.Link);
+            var userCount = _apiController.OnlineUsers.ToString();
+            var userSize = ImGui.CalcTextSize(userCount);
+            var textSize = ImGui.CalcTextSize("Users Online");
+
+            if (_apiController.ServerState is ServerState.Connected)
             {
-                var buttonSize = UiShared.GetIconButtonSize(FontAwesomeIcon.Link);
-                var textSize = ImGui.CalcTextSize(_apiController.SystemInfoDto.CpuUsage.ToString("0.00") + "%");
-                var originalY = ImGui.GetCursorPosY();
-
-                var textPos = originalY + buttonSize.Y / 2 - textSize.Y / 2;
-
-                ImGui.SetCursorPosY(textPos);
-                ImGui.TextColored(ImGuiColors.ParsedGreen, _apiController.OnlineUsers.ToString());
+                ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiShared.GetWindowContentRegionWidth() - buttonSize.X) / 2 - (userSize.X + textSize.X) / 2);
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextColored(ImGuiColors.ParsedGreen, userCount);
                 ImGui.SameLine();
-                ImGui.SetCursorPosY(textPos);
+                ImGui.AlignTextToFramePadding();
                 ImGui.Text("Users Online");
-                ImGui.SameLine();
-                ImGui.SetCursorPosY(textPos);
-                UiShared.ColorText(_apiController.SystemInfoDto.CpuUsage.ToString("0.00") + "%", UiShared.GetCpuLoadColor(_apiController.SystemInfoDto.CpuUsage));
-                ImGui.SameLine();
-                ImGui.SetCursorPosY(textPos);
-                ImGui.Text("Load");
-                UiShared.AttachToolTip("This is the current servers' CPU load");
-
-                ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiShared.GetWindowContentRegionWidth() - buttonSize.X);
-                ImGui.SetCursorPosY(originalY);
-                var serverIsConnected = _apiController.ServerState is ServerState.Connected;
-                var color = UiShared.GetBoolColor(serverIsConnected);
-                var connectedIcon = serverIsConnected ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
-
-                ImGui.PushStyleColor(ImGuiCol.Text, color);
-                if (ImGuiComponents.IconButton(connectedIcon))
-                {
-                    if (_apiController.ServerState == ServerState.Connected)
-                    {
-                        _configuration.FullPause = true;
-                        _configuration.Save();
-                    }
-                    else
-                    {
-                        _configuration.FullPause = false;
-                        _configuration.Save();
-                    }
-                    _ = _apiController.CreateConnections();
-                }
-                ImGui.PopStyleColor();
-                UiShared.AttachToolTip(_apiController.IsConnected ? "Disconnect from " + _apiController.ServerDictionary[_configuration.ApiUri] : "Connect to " + _apiController.ServerDictionary[_configuration.ApiUri]);
             }
             else
             {
-                UiShared.ColorTextWrapped("Server is offline", ImGuiColors.DalamudRed);
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextColored(ImGuiColors.DalamudRed, "Not connected to any server");
             }
+
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiShared.GetWindowContentRegionWidth() - buttonSize.X);
+            var color = UiShared.GetBoolColor(!_configuration.FullPause);
+            var connectedIcon = !_configuration.FullPause ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
+
+            ImGui.PushStyleColor(ImGuiCol.Text, color);
+            if (ImGuiComponents.IconButton(connectedIcon))
+            {
+                _configuration.FullPause = !_configuration.FullPause;
+                _configuration.Save();
+                _ = _apiController.CreateConnections();
+            }
+            ImGui.PopStyleColor();
+            UiShared.AttachToolTip(!_configuration.FullPause ? "Disconnect from " + _apiController.ServerDictionary[_configuration.ApiUri] : "Connect to " + _apiController.ServerDictionary[_configuration.ApiUri]);
         }
 
         private void DrawTransfers()
