@@ -65,7 +65,7 @@ namespace EtheirysSynchronos.UI
             ImGui.SameLine();
             if (ImGui.Button("Etheirys Synchronos Discord"))
             {
-                Util.OpenLink("https://discord.gg/mpNdkrTRjW");
+                Util.OpenLink("https://discord.gg/2Pbahv3NMr");
             }
             ImGui.Separator();
             if (ImGui.BeginTabBar("mainTabBar"))
