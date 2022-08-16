@@ -63,10 +63,7 @@ namespace EtheirysSynchronos.UI
             _windowContentWidth = UiShared.GetWindowContentRegionWidth();
             UiShared.DrawWithID("header", DrawUIDHeader);
             ImGui.Separator();
-            if (_apiController.ServerState is not ServerState.Offline)
-            {
-                UiShared.DrawWithID("serverstatus", DrawServerStatus);
-            }
+            UiShared.DrawWithID("serverstatus", DrawServerStatus);
 
             if (_apiController.ServerState is ServerState.Connected)
             {
@@ -440,7 +437,8 @@ namespace EtheirysSynchronos.UI
                 ServerState.Unauthorized => "Your account is not present on the server anymore or you are banned.",
                 ServerState.Offline => "Your selected Etheirys Synchronos server is currently offline.",
                 ServerState.VersionMisMatch =>
-                    "The plugin or server you are connecting to is outdated. Please update your plugin now. If you already did so, contact the server provider to update their server to the latest version.",
+                    "Your plugin or the server you are connecting to is out of date. Please update your plugin now. If you already did so, contact the server provider to update their server to the latest version.",
+                ServerState.RateLimited => "You are rate limited for (re)connecting too often. Wait and try again later.",
                 ServerState.NoAccount => "Idk how you got here but you have no account. What are you doing?",
                 ServerState.Connected => string.Empty,
                 _ => string.Empty
@@ -457,6 +455,7 @@ namespace EtheirysSynchronos.UI
                 ServerState.VersionMisMatch => ImGuiColors.DalamudRed,
                 ServerState.Offline => ImGuiColors.DalamudRed,
                 ServerState.NoAccount => ImGuiColors.DalamudRed,
+                ServerState.RateLimited => ImGuiColors.DalamudYellow,
                 _ => ImGuiColors.DalamudRed
             };
         }
@@ -470,6 +469,7 @@ namespace EtheirysSynchronos.UI
                 ServerState.VersionMisMatch => "Version mismatch",
                 ServerState.Offline => "Unavailable",
                 ServerState.NoAccount => "No account",
+                ServerState.RateLimited => "Rate Limited",
                 ServerState.Connected => _apiController.UID,
                 _ => string.Empty
             };
