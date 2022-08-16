@@ -152,24 +152,31 @@ namespace EtheirysSynchronos.UI
             }
         }
 
-        public void PrintServerState()
+        public void PrintServerState(bool isIntroUi = false)
         {
             var serverName = _apiController.ServerDictionary.ContainsKey(_pluginConfiguration.ApiUri)
                 ? _apiController.ServerDictionary[_pluginConfiguration.ApiUri]
                 : _pluginConfiguration.ApiUri;
-            if (_apiController.ServerState is ServerState.Connected)
+            ImGui.TextUnformatted("Service " + serverName + ":");
+            ImGui.SameLine();
+            var color = _apiController.ServerAlive ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed;
+            ImGui.TextColored(color, _apiController.ServerAlive ? "Available" : "Unavailable");
+            if (!isIntroUi)
             {
-                ImGui.TextUnformatted("Service " + serverName + ":");
-                ImGui.SameLine();
-                ImGui.TextColored(ImGuiColors.ParsedGreen, "Available");
-                ImGui.SameLine();
-                ImGui.TextUnformatted("(");
-                ImGui.SameLine();
-                ImGui.TextColored(ImGuiColors.ParsedGreen, _apiController.OnlineUsers.ToString());
-                ImGui.SameLine();
-                ImGui.Text("Users Online");
-                ImGui.SameLine();
-                ImGui.Text(")");
+                if (_apiController.ServerAlive)
+                {
+                    ImGui.SameLine();
+                    ImGui.TextUnformatted("(");
+                    ImGui.SameLine();
+                    ImGui.TextColored(ImGuiColors.ParsedGreen, _apiController.OnlineUsers.ToString());
+                    ImGui.SameLine();
+                    if (_apiController.OnlineUsers <= 1)
+                        ImGui.Text("User Online");
+                    else
+                        ImGui.Text("Users Online");
+                    ImGui.SameLine();
+                    ImGui.Text(")");
+                }
             }
         }
 
@@ -314,7 +321,7 @@ namespace EtheirysSynchronos.UI
                 ImGui.TreePop();
             }
 
-            PrintServerState();
+            PrintServerState(isIntroUi);
 
             if (_apiController.ServerAlive && (!_pluginConfiguration.ClientSecret.ContainsKey(_pluginConfiguration.ApiUri) || _pluginConfiguration.ClientSecret[_pluginConfiguration.ApiUri].IsNullOrEmpty()))
             {

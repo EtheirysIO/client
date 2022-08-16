@@ -466,7 +466,7 @@ namespace EtheirysSynchronos.UI
 
             if (ethPaused)
             {
-                _uiShared.DrawServiceSelection(() => { });
+                _uiShared.DrawServiceSelection(() => SwitchToIntroUi?.Invoke());
             }
         }
 

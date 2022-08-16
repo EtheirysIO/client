@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using EtheirysSynchronos.API;
 using EtheirysSynchronos.Utils;
 using EtheirysSynchronos.WebAPI.Utils;
 using Microsoft.AspNetCore.Http.Connections;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace EtheirysSynchronos.WebAPI
@@ -22,7 +20,6 @@ namespace EtheirysSynchronos.WebAPI
         Connected,
         Unauthorized,
         VersionMisMatch,
-        RateLimited,
         NoAccount
     }
 
@@ -57,8 +54,6 @@ namespace EtheirysSynchronos.WebAPI
             _connectionCancellationTokenSource = new CancellationTokenSource();
             _dalamudUtil.LogIn += DalamudUtilOnLogIn;
             _dalamudUtil.LogOut += DalamudUtilOnLogOut;
-            ServerState = ServerState.Offline;
-            _verifiedUploadedHashes = new();
 
             if (_dalamudUtil.IsLoggedIn)
             {
@@ -112,9 +107,11 @@ namespace EtheirysSynchronos.WebAPI
         public List<ClientPairDto> PairedClients { get; set; } = new();
 
         public string SecretKey => _pluginConfiguration.ClientSecret.ContainsKey(ApiUri)
-            ? _pluginConfiguration.ClientSecret[ApiUri] : string.Empty;
+            ? _pluginConfiguration.ClientSecret[ApiUri]
+            : "-";
 
-        public bool ServerAlive => ServerState is ServerState.Connected or ServerState.RateLimited or ServerState.Unauthorized or ServerState.Disconnected or ServerState.NoAccount;
+        public bool ServerAlive =>
+            (_ethHub?.State ?? HubConnectionState.Disconnected) == HubConnectionState.Connected;
 
         public Dictionary<string, string> ServerDictionary => new Dictionary<string, string>()
                 { { MainServiceUri, MainServer } }
@@ -125,16 +122,29 @@ namespace EtheirysSynchronos.WebAPI
         private string ApiUri => _pluginConfiguration.ApiUri;
         public int OnlineUsers => SystemInfoDto.OnlineUsers;
 
-        public ServerState ServerState { get; private set; }
+        public ServerState ServerState
+        {
+            get
+            {
+                var supportedByServer = SupportedServerVersions.Contains(_connectionDto?.ServerVersion ?? 0);
+                bool hasUid = !string.IsNullOrEmpty(UID);
+                if (_pluginConfiguration.FullPause)
+                    return ServerState.Disconnected;
+                if (!ServerAlive)
+                    return ServerState.Offline;
+                if (!hasUid && _pluginConfiguration.ClientSecret.ContainsKey(ApiUri))
+                    return ServerState.Unauthorized;
+                if (!supportedByServer)
+                    return ServerState.VersionMisMatch;
+                if (supportedByServer && hasUid)
+                    return ServerState.Connected;
+
+                return ServerState.NoAccount;
+            }
+        }
 
         public async Task CreateConnections()
         {
-            if (_pluginConfiguration.FullPause)
-            {
-                ServerState = ServerState.Disconnected;
-                _connectionDto = null;
-                return;
-            }
             Logger.Info("Recreating Connection");
 
             await StopConnection(_connectionCancellationTokenSource.Token);
@@ -142,15 +152,8 @@ namespace EtheirysSynchronos.WebAPI
             _connectionCancellationTokenSource.Cancel();
             _connectionCancellationTokenSource = new CancellationTokenSource();
             var token = _connectionCancellationTokenSource.Token;
-            _verifiedUploadedHashes.Clear();
             while (ServerState is not ServerState.Connected && !token.IsCancellationRequested)
             {
-                if (string.IsNullOrEmpty(SecretKey))
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(2));
-                    continue;
-                }
-
                 await StopConnection(token);
 
                 try
@@ -171,17 +174,14 @@ namespace EtheirysSynchronos.WebAPI
 
                     _ethHub.On<SystemInfoDto>(Api.OnUpdateSystemInfo, (dto) => SystemInfoDto = dto);
 
-                    _connectionDto =
-                        await _ethHub.InvokeAsync<ConnectionDto>(Api.InvokeHeartbeat, _dalamudUtil.PlayerNameHashed, token);
-
-                    ServerState = ServerState.Connected;
-
-                    if (_connectionDto.ServerVersion != Api.Version)
+                    if (_pluginConfiguration.FullPause)
                     {
-                        ServerState = ServerState.VersionMisMatch;
-                        await StopConnection(token);
+                        _connectionDto = null;
                         return;
                     }
+
+                    _connectionDto =
+                        await _ethHub.InvokeAsync<ConnectionDto>(Api.InvokeHeartbeat, _dalamudUtil.PlayerNameHashed, token);
                     if (ServerState is ServerState.Connected) // user is authorized && server is legit
                     {
                         await InitializeData(token);
@@ -190,46 +190,22 @@ namespace EtheirysSynchronos.WebAPI
                         _ethHub.Reconnected += EthHubOnReconnected;
                         _ethHub.Reconnecting += EthHubOnReconnecting;
                     }
-                }
-                catch (HubException ex)
-                {
-                    Logger.Warn(ex.GetType().ToString());
-                    Logger.Warn(ex.Message);
-                    Logger.Warn(ex.StackTrace ?? string.Empty);
-
-                    ServerState = ServerState.RateLimited;
-                    await StopConnection(token);
-                    return;
-                }
-                catch (HttpRequestException ex)
-                {
-                    Logger.Warn(ex.GetType().ToString());
-                    Logger.Warn(ex.Message);
-                    Logger.Warn(ex.StackTrace ?? string.Empty);
-
-                    if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    else if (ServerState is ServerState.VersionMisMatch or ServerState.NoAccount or ServerState.Unauthorized)
                     {
-                        ServerState = ServerState.Unauthorized;
-                        await StopConnection(token);
-                        return;
-                    }
-                    else
-                    {
-                        ServerState = ServerState.Offline;
-                        Logger.Info("Failed to establish connection, retrying");
-                        await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), token);
+                        break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Logger.Warn(ex.GetType().ToString());
                     Logger.Warn(ex.Message);
                     Logger.Warn(ex.StackTrace ?? string.Empty);
                     Logger.Info("Failed to establish connection, retrying");
+                    await StopConnection(token);
                     await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), token);
                 }
             }
         }
+
         private async Task InitializeData(CancellationToken token)
         {
             if (_ethHub == null) return;
