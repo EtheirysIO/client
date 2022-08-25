@@ -5,13 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Logging;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using EtheirysSynchronos.API;
 using EtheirysSynchronos.FileCacheDB;
-using EtheirysSynchronos.Interop;
+using EtheirysSynchronos.Managers;
+using EtheirysSynchronos.Models;
 using EtheirysSynchronos.Utils;
 using EtheirysSynchronos.WebAPI;
-using Penumbra.GameData.Structs;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 
 namespace EtheirysSynchronos.Managers;
 
@@ -59,7 +59,7 @@ public class CachedPlayer
 
     private CharacterCacheDto _cachedData = new();
 
-    private CharacterEquipment? _currentCharacterEquipment;
+    private PlayerRelatedObject? _currentCharacterEquipment;
 
     public void ApplyCharacterData(CharacterCacheDto characterData)
     {
@@ -236,14 +236,18 @@ public class CachedPlayer
             Logger.Debug(
                 $"Request Redraw for {PlayerName}");
             _ipcManager.GlamourerApplyAll(glamourerData, PlayerCharacter.Address);
+            // todo: remove
+            _ipcManager.PenumbraRedraw(PlayerCharacter.Address);
         }
-        else if (objectKind == ObjectKind.Minion)
+        else if (objectKind == ObjectKind.MinionOrMount)
         {
-            var minion = ((Character*)PlayerCharacter.Address)->CompanionObject;
-            if (minion != null)
+            var minionOrMount = ((Character*)PlayerCharacter.Address)->CompanionObject;
+            if (minionOrMount != null)
             {
-                Logger.Debug($"Request Redraw for Minion");
-                _ipcManager.GlamourerApplyAll(glamourerData, obj: (IntPtr)minion);
+                Logger.Debug($"Request Redraw for Minion/Mount");
+                _ipcManager.GlamourerApplyAll(glamourerData, obj: (IntPtr)minionOrMount);
+                // todo: remove
+                _ipcManager.PenumbraRedraw((IntPtr)minionOrMount);
             }
         }
         else if (objectKind == ObjectKind.Pet)
@@ -253,6 +257,8 @@ public class CachedPlayer
             {
                 Logger.Debug("Request Redraw for Pet");
                 _ipcManager.GlamourerApplyAll(glamourerData, pet);
+                // todo: remove
+                _ipcManager.PenumbraRedraw(pet);
             }
         }
         else if (objectKind == ObjectKind.Companion)
@@ -262,15 +268,8 @@ public class CachedPlayer
             {
                 Logger.Debug("Request Redraw for Companion");
                 _ipcManager.GlamourerApplyAll(glamourerData, companion);
-            }
-        }
-        else if (objectKind == ObjectKind.Mount)
-        {
-            var mount = ((CharaExt*)PlayerCharacter.Address)->Mount;
-            if (mount != null)
-            {
-                Logger.Debug($"Request Redraw for Mount");
-                _ipcManager.PenumbraRedraw((IntPtr)mount);
+                // todo: remove
+                _ipcManager.PenumbraRedraw(companion);
             }
         }
     }
@@ -283,13 +282,15 @@ public class CachedPlayer
         {
             _ipcManager.GlamourerApplyOnlyCustomization(_originalGlamourerData, PlayerCharacter);
             _ipcManager.GlamourerApplyOnlyEquipment(_lastGlamourerData, PlayerCharacter);
+            // todo: remove
+            _ipcManager.PenumbraRedraw(PlayerCharacter.Address);
         }
-        else if (objectKind == ObjectKind.Minion)
+        else if (objectKind == ObjectKind.MinionOrMount)
         {
-            var minion = ((Character*)PlayerCharacter.Address)->CompanionObject;
-            if (minion != null)
+            var minionOrMount = ((Character*)PlayerCharacter.Address)->CompanionObject;
+            if (minionOrMount != null)
             {
-                _ipcManager.PenumbraRedraw((IntPtr)minion);
+                _ipcManager.PenumbraRedraw((IntPtr)minionOrMount);
             }
         }
         else if (objectKind == ObjectKind.Pet)
@@ -306,14 +307,6 @@ public class CachedPlayer
             if (companion != IntPtr.Zero)
             {
                 _ipcManager.PenumbraRedraw(companion);
-            }
-        }
-        else if (objectKind == ObjectKind.Mount)
-        {
-            var mount = ((CharaExt*)PlayerCharacter.Address)->Mount;
-            if (mount != null)
-            {
-                _ipcManager.PenumbraRedraw((IntPtr)mount);
             }
         }
     }
@@ -363,7 +356,8 @@ public class CachedPlayer
         _dalamudUtil.FrameworkUpdate += DalamudUtilOnFrameworkUpdate;
         _ipcManager.PenumbraRedrawEvent += IpcManagerOnPenumbraRedrawEvent;
         _originalGlamourerData = _ipcManager.GlamourerGetCharacterCustomization(PlayerCharacter);
-        _currentCharacterEquipment = new CharacterEquipment(PlayerCharacter);
+        _currentCharacterEquipment = new PlayerRelatedObject(ObjectKind.Player, IntPtr.Zero, IntPtr.Zero,
+            () => _dalamudUtil.GetPlayerCharacterFromObjectTableByName(PlayerName)?.Address ?? IntPtr.Zero);
         _isDisposed = false;
         if (cache != null)
         {
@@ -382,7 +376,8 @@ public class CachedPlayer
             return;
         }
 
-        if (!_currentCharacterEquipment!.CompareAndUpdate(PlayerCharacter))
+        _currentCharacterEquipment?.CheckAndUpdateObject();
+        if (_currentCharacterEquipment?.HasUnprocessedUpdate ?? false)
         {
             OnPlayerChanged();
         }
@@ -427,6 +422,7 @@ public class CachedPlayer
         Logger.Debug($"Player {PlayerName} changed, PenumbraRedraw is {RequestedPenumbraRedraw}");
         if (!RequestedPenumbraRedraw && PlayerCharacter is not null)
         {
+            _currentCharacterEquipment!.HasUnprocessedUpdate = false;
             Logger.Debug($"Saving new Glamourer data");
             _lastGlamourerData = _ipcManager.GlamourerGetCharacterCustomization(PlayerCharacter!);
         }

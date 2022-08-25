@@ -170,7 +170,7 @@ namespace EtheirysSynchronos.UI
             _showUidForEntry.TryGetValue(entry.OtherUID, out var showUidInsteadOfName);
             if (!showUidInsteadOfName && _configuration.GetCurrentServerUidComments().TryGetValue(entry.OtherUID, out var playerText))
             {
-                if (playerText.IsNullOrEmpty())
+                if (string.IsNullOrEmpty(playerText))
                 {
                     playerText = entry.OtherUID;
                 }

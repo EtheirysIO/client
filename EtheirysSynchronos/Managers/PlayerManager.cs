@@ -1,16 +1,15 @@
 ﻿using EtheirysSynchronos.Factories;
-using EtheirysSynchronos.Utils;
-using EtheirysSynchronos.WebAPI;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using EtheirysSynchronos.API;
-using Penumbra.GameData.Structs;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using System.Collections.Generic;
 using System.Linq;
+using EtheirysSynchronos.API;
+using EtheirysSynchronos.Managers;
 using EtheirysSynchronos.Models;
-using EtheirysSynchronos.Interop;
+using EtheirysSynchronos.Utils;
+using EtheirysSynchronos.WebAPI;
 
 namespace EtheirysSynchronos.Managers
 {
@@ -29,7 +28,6 @@ namespace EtheirysSynchronos.Managers
 
         private CancellationTokenSource? _playerChangedCts = new();
         private DateTime _lastPlayerObjectCheck;
-        private CharacterEquipment? _currentCharacterEquipment = new();
 
         private List<PlayerRelatedObject> playerRelatedObjects = new List<PlayerRelatedObject>();
 
@@ -56,10 +54,9 @@ namespace EtheirysSynchronos.Managers
             playerRelatedObjects = new List<PlayerRelatedObject>()
             {
                 new PlayerRelatedObject(ObjectKind.Player, IntPtr.Zero, IntPtr.Zero, () => _dalamudUtil.PlayerPointer),
-                new PlayerRelatedObject(ObjectKind.Minion, IntPtr.Zero, IntPtr.Zero, () => (IntPtr)((Character*)_dalamudUtil.PlayerPointer)->CompanionObject),
+                new PlayerRelatedObject(ObjectKind.MinionOrMount, IntPtr.Zero, IntPtr.Zero, () => (IntPtr)((Character*)_dalamudUtil.PlayerPointer)->CompanionObject),
                 new PlayerRelatedObject(ObjectKind.Pet, IntPtr.Zero, IntPtr.Zero, () => _dalamudUtil.GetPet()),
                 new PlayerRelatedObject(ObjectKind.Companion, IntPtr.Zero, IntPtr.Zero, () => _dalamudUtil.GetCompanion()),
-                new PlayerRelatedObject(ObjectKind.Mount, IntPtr.Zero, IntPtr.Zero, () => (IntPtr)((CharaExt*)_dalamudUtil.PlayerPointer)->Mount),
             };
         }
 

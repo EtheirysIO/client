@@ -79,7 +79,7 @@ namespace EtheirysSynchronos
         public Dictionary<string, Dictionary<string, string>> UidServerComments { get; set; } = new();
 
         public Dictionary<string, string> UidComments { get; set; } = new();
-        public int Version { get; set; } = 4;
+        public int Version { get; set; } = 7;
 
         public bool ShowTransferWindow { get; set; } = true;
 
